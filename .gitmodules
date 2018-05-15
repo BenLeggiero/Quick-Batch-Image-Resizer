@@ -1,0 +1,3 @@
+[submodule "lib/LatteFX"]
+	path = lib/LatteFX
+	url = https://github.com/BlueHuskyStudios/LatteFX.git
