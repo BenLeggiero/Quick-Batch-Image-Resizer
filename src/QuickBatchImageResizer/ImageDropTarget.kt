@@ -3,23 +3,68 @@ package QuickBatchImageResizer
 import QuickBatchImageResizer.ImageDropTarget.FileOrImage.*
 import QuickBatchImageResizer.ImageDropTarget.State.*
 import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.*
+import javafx.event.EventHandler
+import javafx.scene.input.*
+import javafx.scene.input.TransferMode.*
+import javafx.scene.layout.*
+import javafx.scene.paint.Paint
 import java.awt.*
 import java.awt.datatransfer.DataFlavor.*
 import java.io.*
 import javax.swing.*
+import kotlin.properties.*
 
 /**
  * @author Ben Leggiero
  * @since 2018-05-12
  */
-class ImageDropTarget: JComponent() {
+class ImageDropTarget(var delegate: Delegate): Pane() {
 
-    var state: State = inactive
+    var state: State by Delegates.observable(inactive as State) { _,_,_ ->
+        updateUi()
+    }
 
     init {
-//        dropTarget.addDropTargetListener(this)
-        this.transferHandler = FileTransferHandler()
-        dropTarget.isActive = true
+        onDragEntered = userDidStartDrag()
+        onDragOver = userDidContinueDrag()
+        onDragDropped = userDidDragDrop()
+
+        this.setMinSize(128.0, 128.0)
+        this.setPrefSize(256.0, 256.0)
+
+        updateUi()
+    }
+
+
+    private fun updateUi() {
+        border = Border(BorderStroke(state.paint, BorderStrokeStyle.DASHED, CornerRadii(4.0), BorderWidths(4.0)))
+    }
+
+
+    fun userDidStartDrag() = EventHandler<DragEvent> {
+        println("Drag started: $it")
+        it.acceptTransferModes(COPY)
+
+        state = hovering(setOf())
+    }
+
+
+    fun userDidCancelDrag() = EventHandler<DragEvent> {
+        println("Drag cancelled: $it")
+        state = inactive
+    }
+
+
+    fun userDidContinueDrag() = EventHandler<DragEvent> {
+        println("Drag continued: $it")
+        it.acceptTransferModes(COPY)
+    }
+
+
+    fun userDidDragDrop() = EventHandler<DragEvent> {
+        println("Drag drop: $it")
+
+        state = holding(setOf())
     }
 
     inner class FileTransferHandler : TransferHandler() {
@@ -56,56 +101,19 @@ class ImageDropTarget: JComponent() {
 
 
 
-    override fun paint(g: Graphics?) {
-        if (null == g) {
-            println("Null graphics in paint method...?")
-            return
-        }
-        val state = this.state
+    sealed class State(val paint: Paint) {
+        object inactive: State(MaterialColors.blueGrey100)
+        object denying: State(MaterialColors.red600)
 
-        g.clearRect(0, 0, width, height)
+        sealed class StateWithFiles(val fileOrImages: Set<FileOrImage>, paint: Paint): State(paint) {
+            /** When the user has is holding the image(s) atop drop target */
+            class hovering(files: Set<FileOrImage>) : StateWithFiles(files, MaterialColors.lightBlue400)
 
-        val text = when (state) {
-            is StateWithFiles -> state.filesString
-            is denying -> "🚫 Not Supported"
-            else -> "Drop file(s) here"
-        }
+            /** When the user has just let go of the image(s), but they are not yet held by the drop target */
+            class dropping(files: Set<FileOrImage>) : StateWithFiles(files, MaterialColors.lightBlue400)
 
-        g.font = Font.getFont(Font.DIALOG).deriveFont(24.0f)
-        g.drawString(text, 10, 10)
-    }
-
-
-//    override fun dropActionChanged(dtde: DropTargetDragEvent?) {
-//        this.state =
-//    }
-//
-//    override fun drop(dtde: DropTargetDropEvent?) {
-//        this.state = State(dtde ?: return)
-//    }
-//
-//    override fun dragOver(dtde: DropTargetDragEvent?) {
-//        this.state = State(dtde ?: return)
-//    }
-//
-//    override fun dragExit(dte: DropTargetEvent?) {
-//        this.state = State(dte ?: return)
-//    }
-//
-//    override fun dragEnter(dtde: DropTargetDragEvent?) {
-//        this.state = State(dtde ?: return)
-//    }
-
-
-
-    sealed class State {
-        object inactive: State()
-        object denying: State()
-
-        sealed class StateWithFiles(val fileOrImages: Set<FileOrImage>): State() {
-            class hovering(files: Set<FileOrImage>) : StateWithFiles(files)
-            class dropping(files: Set<FileOrImage>) : StateWithFiles(files)
-            class holding(files: Set<FileOrImage>) : StateWithFiles(files)
+            /** When the image drop target is holding the image(s) */
+            class holding(files: Set<FileOrImage>) : StateWithFiles(files, MaterialColors.blueGrey500)
 
             val filesString get() = when (fileOrImages.count()) {
                 0 -> "🚫"
@@ -117,6 +125,7 @@ class ImageDropTarget: JComponent() {
     }
 
 
+
     sealed class FileOrImage {
         class file(val file: File): FileOrImage()
         class image(val image: Image): FileOrImage()
@@ -125,6 +134,29 @@ class ImageDropTarget: JComponent() {
             is file -> this.file.name
             is image -> "🖼"
         }
+    }
+
+
+
+    interface Delegate {
+        /**
+         * Called to determine whether the drop target should accept or reject the given item
+         */
+        fun shouldAcceptDrop(item: FileOrImage): Boolean
+
+
+        /**
+         * Called after a drop was successfully completed
+         */
+        fun didReceiveDrop(item: FileOrImage): DropReaction
+    }
+
+
+    enum class DropReaction {
+        processingNotStarted,
+        processingSucceeded,
+        processingFailed,
+        ;
     }
 }
 

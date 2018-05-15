@@ -19,6 +19,7 @@ import kotlin.properties.*
  * @author ben
  * @since 5/12/18.
  */
+/*
 class MainWindow: JFrame("Quick Batch Image Resizer") {
 
     private var targetDimensionsLabel = JLabel("Target Dimensions: ")
@@ -212,3 +213,4 @@ fun Any?.toInt() = when (this) {
 operator fun ChangeListener.invoke(changeEvent: ChangeEvent) {
     this.stateChanged(changeEvent)
 }
+*/
