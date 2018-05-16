@@ -1,49 +1,34 @@
 package QuickBatchImageResizer
 
 import LatteFX.*
-import javafx.event.*
-import javafx.scene.control.*
-import javafx.scene.input.*
-import javafx.scene.input.TransferMode.*
+import QuickBatchImageResizer.ImageDropTarget.*
+import QuickBatchImageResizer.ImageDropTarget.DropReaction.*
 import javafx.scene.layout.*
-import javafx.scene.paint.*
 
 /**
  * @author Ben Leggiero
  * @since 2018-05-13
  */
-class MainComponentWrapper() : FXComponentWrapper(MainContent()) {
-}
+class MainComponentWrapper : FXComponentWrapper(MainContent())
 
 
-
-class MainContent: BorderPane() {
+class MainContent: BorderPane(), ImageDropTarget.Delegate {
     init {
         top = TopBar()
-        center = ImageDropTarget()
+        center = ImageDropTarget(this)
+        bottom = BottomBar()
+    }
+
+
+    override fun shouldAcceptDrop(items: Set<FileOrImage>): Boolean {
+        return true
+    }
+
+
+    override fun didReceiveDrop(items: Set<FileOrImage>): DropReaction {
+        return processingNotStarted
     }
 }
-
-
-
-class TopBar: GridPane() {
-    val targetDimensionLabel = Label("Target Dimensions: ")
-    val targetDimensionXSpinner = Spinner<Int>(1, 99999, 640)
-    val targetDimensionSpinnerDivider = Label(" ✕ ")
-    val targetDimensionYSpinner = Spinner<Int>(1, 99999, 480)
-
-    init {
-
-        targetDimensionXSpinner.prefWidth = 96.0
-        targetDimensionYSpinner.prefWidth = 96.0
-
-        add(targetDimensionLabel, 0, 0)
-        add(targetDimensionXSpinner, 1, 0)
-        add(targetDimensionSpinnerDivider, 2, 0)
-        add(targetDimensionYSpinner, 3, 0)
-    }
-}
-
 
 
 //class ImageOrFileDropTarget: Pane() {

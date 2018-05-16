@@ -1,20 +1,6 @@
 package QuickBatchImageResizer;
 
 
-import java.awt.*
-import java.awt.ComponentOrientation.*
-import java.awt.GridBagConstraints.*
-import java.awt.event.*
-import java.beans.*
-import java.io.*
-import javax.swing.*
-import javax.swing.Action.*
-import javax.swing.JCheckBox
-import javax.swing.JSpinner
-import javax.swing.event.*
-import kotlin.properties.*
-
-
 /**
  * @author ben
  * @since 5/12/18.

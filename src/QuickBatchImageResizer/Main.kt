@@ -1,6 +1,7 @@
 package QuickBatchImageResizer
 
 import LatteFX.*
+import kotlin.math.*
 
 /**
  * @author ben
@@ -14,8 +15,12 @@ import LatteFX.*
 
 class Main: LatteFXMain(appInfo = QBIRAppInfo,
                         appConfig = QBIRAppConfig,
-                        onStart = { commandLineArguments, primaryWindow ->
-    if (null != primaryWindow) {
-        primaryWindow.show()
+                        onStart =
+{ commandLineArguments, primaryWindow ->
+    primaryWindow?.apply {
+        show()
+        sizeToScene()
+        minHeight = height
+        minWidth = width
     }
 })
