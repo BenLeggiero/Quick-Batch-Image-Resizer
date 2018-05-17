@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package QuickBatchImageResizer
 
 import QuickBatchImageResizer.ImageDropTarget.State.*
@@ -218,9 +220,8 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
 
     enum class DropReaction {
-        processingNotStarted,
-        processingSucceeded,
-        processingFailed,
+        accepted,
+        rejected
         ;
     }
 }

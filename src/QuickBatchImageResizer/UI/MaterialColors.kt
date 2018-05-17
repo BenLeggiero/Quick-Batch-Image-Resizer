@@ -1,3 +1,5 @@
+@file:Suppress("PackageDirectoryMismatch")
+
 package QuickBatchImageResizer
 
 import javafx.scene.paint.*

@@ -1,4 +1,6 @@
-package QuickBatchImageResizer;
+@file:Suppress("PackageDirectoryMismatch")
+
+package QuickBatchImageResizer
 
 
 /**

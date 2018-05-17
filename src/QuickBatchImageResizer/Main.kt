@@ -1,7 +1,6 @@
 package QuickBatchImageResizer
 
 import LatteFX.*
-import kotlin.math.*
 
 /**
  * @author ben

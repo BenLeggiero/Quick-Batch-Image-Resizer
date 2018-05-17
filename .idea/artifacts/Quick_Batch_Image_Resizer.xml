@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
-  <artifact type="javafx" build-on-make="true" name="Quick Batch Image Resizer">
-    <output-path>$PROJECT_DIR$/out/artifacts/Quick_Batch_Image_Resizer</output-path>
+  <artifact type="javafx" name="Quick Batch Image Resizer">
+    <output-path />
     <properties id="javafx-properties">
       <options>
         <option name="appClass" value="QuickBatchImageResizer.Main" />
