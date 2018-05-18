@@ -16,6 +16,7 @@ class Main: LatteFXMain(appInfo = QBIRAppInfo,
                         appConfig = QBIRAppConfig,
                         onStart =
 { commandLineArguments, primaryWindow ->
+
     primaryWindow?.apply {
         show()
         sizeToScene()

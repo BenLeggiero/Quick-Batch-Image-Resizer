@@ -2,12 +2,17 @@
 
 package QuickBatchImageResizer
 
+import QuickBatchImageResizer.ImageDropTarget.*
 import QuickBatchImageResizer.ImageDropTarget.State.*
 import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.*
+import javafx.embed.swing.*
 import javafx.event.*
 import javafx.geometry.*
+import javafx.geometry.Insets
 import javafx.scene.control.*
+import javafx.scene.control.Label
 import javafx.scene.image.*
+import javafx.scene.image.Image
 import javafx.scene.input.*
 import javafx.scene.input.TransferMode.*
 import javafx.scene.layout.*
@@ -16,7 +21,19 @@ import javafx.scene.text.*
 import javafx.scene.text.FontWeight.*
 import javafx.scene.text.TextAlignment.*
 import java.io.*
+import javax.imageio.*
 import kotlin.properties.*
+import java.io.IOException
+import java.io.FileOutputStream
+import java.io.BufferedOutputStream
+import javafx.scene.image.PixelFormat.getByteBgraInstance
+import javafx.scene.image.WritablePixelFormat
+import javafx.scene.image.PixelReader
+import javafx.scene.paint.Paint
+import javafx.scene.text.Font
+import java.awt.*
+import java.awt.image.*
+
 
 /**
  * @author Ben Leggiero
@@ -177,12 +194,22 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
 
     sealed class FileOrImage {
+
         class file(val file: File): FileOrImage()
-        class image(val image: Image): FileOrImage()
+        class image(val image: Image, val originalFile: File? = null): FileOrImage()
+
+
 
         val name: String get() = when (this) {
             is file -> this.file.name
             is image -> "🖼"
+        }
+
+
+        fun resized(newSize: Dimension2D): image = when (this) {
+            is image -> image(this.image.resized(newSize = newSize))
+            is file -> image(this.image?.resized(newSize = newSize)
+                                     ?: throw IOException("Could not read ${this.file}"), originalFile = this.file)
         }
 
 
@@ -226,6 +253,35 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     }
 }
 
+class UnwrittenImage(val failedFile: File, val origin: FileOrImage)
+
+
+fun Image.resized(newSize: Dimension2D, preserveRatio: Boolean = false): Image
+        = ImageView(this).apply {
+            isPreserveRatio = preserveRatio
+            fitWidth = newSize.width
+            fitHeight = newSize.height
+        }
+        .snapshot(null, null)
+
+
+val FileOrImage.file.image: Image? get()
+        = try { Image(this.file.path) }
+        catch (_: Throwable) { null }
+
+
+fun FileOrImage.image.write(toFile: File): UnwrittenImage? {
+    return try {
+        ImageIO.write(image.buffered(), "jpg", toFile)
+        null
+    } catch (error: Throwable) {
+        UnwrittenImage(failedFile = toFile, origin = this)
+    }
+}
+
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Image.buffered(): BufferedImage = SwingFXUtils.fromFXImage(this, null)
 
 
 private fun <T> Array<T>.containsAny(others: Iterable<T>): Boolean = this.intersect(others).isNotEmpty()

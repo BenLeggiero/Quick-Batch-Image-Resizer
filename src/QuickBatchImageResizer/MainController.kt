@@ -3,6 +3,7 @@ package QuickBatchImageResizer
 import QuickBatchImageResizer.ImageDropTarget.*
 import QuickBatchImageResizer.ImageDropTarget.DropReaction.*
 import javafx.geometry.*
+import java.io.*
 
 /**
  * @author Ben
@@ -12,6 +13,8 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
     override var targetDimension = Dimension2D(640.0, 480.0)
     override var useRapidMode: Boolean = false
     override var overwriteExistingFiles: Boolean = false
+
+    var allImages = mutableSetOf<FileOrImage.image>()
 
     override fun didPressGoButton() {
         processFiles()
@@ -24,12 +27,41 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
 
 
     override fun didReceiveDrop(items: Set<FileOrImage>): DropReaction {
-        processFiles()
+        if (useRapidMode) {
+            processFiles()
+        }
         return accepted
     }
 
 
     private fun processFiles() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        allImages.forEach {
+            it.resized(newSize = targetDimension).write(it.path(uniqueness = "${targetDimension.width}x${targetDimension.height}"))
+        }
+        allImages = mutableSetOf()
+    }
+
+
+    private fun FileOrImage.image.path(uniqueness: String): File {
+        if (null != originalFile) {
+            if (overwriteExistingFiles) {
+                return originalFile
+            }
+            else {
+                return originalFile.madeUnique(hint = uniqueness)
+            }
+        }
+    }
+}
+
+private fun File.madeUnique(hint: String): File {
+    val firstFilenameIdea = "$nameWithoutExtension ($hint).$extension"
+    val firstFileIdea = File("${this.parentFile.path}${File.separator}$firstFilenameIdea")
+
+    if (firstFileIdea.exists()) {
+        TODO
+    }
+    else {
+        return firstFileIdea
     }
 }
