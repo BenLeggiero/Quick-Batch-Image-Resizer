@@ -122,6 +122,7 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
             if (delegate.shouldAcceptDrop(it)) {
                 state = holding(it)
                 dragEvent.acceptTransferModes(COPY)
+                delegate.didReceiveDrop(it)
             }
             else {
                 state = inactive
@@ -129,6 +130,10 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
         }
 
         dragEvent.consume()
+    }
+
+    fun clear() {
+        state = inactive
     }
 
 //    inner class FileTransferHandler : TransferHandler() {

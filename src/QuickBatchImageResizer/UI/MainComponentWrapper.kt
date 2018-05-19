@@ -3,8 +3,7 @@
 package QuickBatchImageResizer
 
 import LatteFX.*
-import QuickBatchImageResizer.ImageDropTarget.*
-import QuickBatchImageResizer.ImageDropTarget.DropReaction.*
+import QuickBatchImageResizer.MainController.Delegate
 import javafx.scene.layout.*
 
 /**
@@ -14,10 +13,16 @@ import javafx.scene.layout.*
 class MainComponentWrapper : FXComponentWrapper(MainContent())
 
 
-class MainContent: BorderPane() {
+class MainContent: BorderPane(), Delegate {
+    override fun doneProcessingImages() {
+        (center as? ImageDropTarget)?.clear()
+    }
+
     init {
         top = TopBar(MainController)
         center = ImageDropTarget(MainController)
         bottom = BottomBar(MainController)
+
+        MainController.delegate = this
     }
 }
