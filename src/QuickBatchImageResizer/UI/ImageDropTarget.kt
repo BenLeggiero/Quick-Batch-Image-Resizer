@@ -2,37 +2,30 @@
 
 package QuickBatchImageResizer
 
-import QuickBatchImageResizer.ImageDropTarget.*
-import QuickBatchImageResizer.ImageDropTarget.State.*
-import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.*
-import javafx.embed.swing.*
-import javafx.event.*
-import javafx.geometry.*
+import QuickBatchImageResizer.ImageDropTarget.FileOrImage
+import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.holding
+import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.hovering
+import QuickBatchImageResizer.ImageDropTarget.State.denying
+import QuickBatchImageResizer.ImageDropTarget.State.inactive
+import javafx.embed.swing.SwingFXUtils
+import javafx.event.EventHandler
+import javafx.geometry.Dimension2D
 import javafx.geometry.Insets
-import javafx.scene.control.*
 import javafx.scene.control.Label
-import javafx.scene.image.*
 import javafx.scene.image.Image
-import javafx.scene.input.*
-import javafx.scene.input.TransferMode.*
+import javafx.scene.image.ImageView
+import javafx.scene.input.DragEvent
+import javafx.scene.input.TransferMode.COPY
 import javafx.scene.layout.*
-import javafx.scene.paint.*
-import javafx.scene.text.*
-import javafx.scene.text.FontWeight.*
-import javafx.scene.text.TextAlignment.*
-import java.io.*
-import javax.imageio.*
-import kotlin.properties.*
-import java.io.IOException
-import java.io.FileOutputStream
-import java.io.BufferedOutputStream
-import javafx.scene.image.PixelFormat.getByteBgraInstance
-import javafx.scene.image.WritablePixelFormat
-import javafx.scene.image.PixelReader
 import javafx.scene.paint.Paint
 import javafx.scene.text.Font
-import java.awt.*
-import java.awt.image.*
+import javafx.scene.text.FontWeight.BOLD
+import javafx.scene.text.TextAlignment.CENTER
+import java.awt.image.BufferedImage
+import java.io.File
+import java.io.IOException
+import javax.imageio.ImageIO
+import kotlin.properties.Delegates
 
 
 /**
@@ -80,14 +73,15 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     fun userDidStartDrag() = EventHandler<DragEvent> { dragEvent ->
         println("Drag started: $dragEvent")
 
-        FileOrImage(dragEvent)?.let {
-            if (delegate.shouldAcceptDrop(it)) {
-                state = hovering(it)
-                dragEvent.acceptTransferModes(COPY)
-            }
-            else {
-                state = denying
-            }
+        val filesOrImages = FileOrImage.extractAll(dragEvent)
+
+        if (filesOrImages.isNotEmpty()
+                && delegate.shouldAcceptDrop(filesOrImages)) {
+            state = hovering(filesOrImages)
+            dragEvent.acceptTransferModes(COPY)
+        }
+        else {
+            state = denying
         }
 
         dragEvent.consume()
@@ -118,15 +112,16 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     fun userDidDragDrop() = EventHandler<DragEvent> { dragEvent ->
         println("Drag drop: $dragEvent")
 
-        FileOrImage(dragEvent)?.let {
-            if (delegate.shouldAcceptDrop(it)) {
-                state = holding(it)
-                dragEvent.acceptTransferModes(COPY)
-                delegate.didReceiveDrop(it)
-            }
-            else {
-                state = inactive
-            }
+        val filesOrImages = FileOrImage.extractAll(dragEvent)
+
+        if (filesOrImages.isNotEmpty()
+                && delegate.shouldAcceptDrop(filesOrImages)) {
+            state = holding(filesOrImages)
+            dragEvent.acceptTransferModes(COPY)
+            delegate.didReceiveDrop(filesOrImages)
+        }
+        else {
+            state = inactive
         }
 
         dragEvent.consume()
@@ -219,7 +214,7 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
 
         companion object {
-            operator fun invoke(dragEvent: DragEvent): Set<FileOrImage>? {
+            fun extractAll(dragEvent: DragEvent): Set<FileOrImage> {
                 val dragboard = dragEvent.dragboard
                 val all = mutableSetOf<FileOrImage>()
 
