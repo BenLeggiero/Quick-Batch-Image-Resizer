@@ -76,9 +76,13 @@ private fun Set<FileOrImage>.mapToImages(): Set<image> {
     return map {
         when (it) {
             is image -> it
-            is file -> image(Image(it.file.inputStream()))
+            is file -> image(it.readImage(), originalFile = it.file)
         }
     }.toSet()
+}
+
+private fun FileOrImage.file.readImage(): Image {
+    return Image("file://" + this.file.path)
 }
 
 private val FileOrImage.format: String
@@ -90,7 +94,7 @@ private val FileOrImage.format: String
 
 private fun File.madeUnique(hint: String): File {
     val firstFilenameIdea = "$nameWithoutExtension ($hint).$extension"
-    val firstFileIdea = File("${this.parentFile.path}${File.separator}$firstFilenameIdea")
+    val firstFileIdea = File("${this.parentFile?.path ?: ""}${File.separator}$firstFilenameIdea")
 
     if (firstFileIdea.exists()) {
         var filenameIdea: String

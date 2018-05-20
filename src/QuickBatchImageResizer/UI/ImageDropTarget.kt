@@ -11,6 +11,7 @@ import javafx.embed.swing.SwingFXUtils
 import javafx.event.EventHandler
 import javafx.geometry.Dimension2D
 import javafx.geometry.Insets
+import javafx.scene.CacheHint.*
 import javafx.scene.control.Label
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
@@ -261,6 +262,9 @@ fun Image.resized(newSize: Dimension2D, preserveRatio: Boolean = false): Image
             isPreserveRatio = preserveRatio
             fitWidth = newSize.width
             fitHeight = newSize.height
+            isCache = false
+            cacheHint = QUALITY
+            isCache = true
         }
         .snapshot(null, null)
 
