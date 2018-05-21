@@ -3,8 +3,8 @@
 package QuickBatchImageResizer
 
 import LatteFX.*
+import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.*
 import QuickBatchImageResizer.MainController.Delegate
-import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.processing
 import javafx.scene.layout.*
 
 /**
@@ -15,6 +15,14 @@ class MainComponentWrapper : FXComponentWrapper(MainContent())
 
 
 class MainContent: BorderPane(), Delegate {
+    override fun preparingImagesForProcessing() {
+        (center as? ImageDropTarget)?.state = processing(setOf())
+    }
+
+    override fun readyToProcessImages(images: Set<ImageDropTarget.FileOrImage>) {
+        (center as? ImageDropTarget)?.state = holding(images)
+    }
+
     override fun startedProcessingImages(images: Set<ImageDropTarget.FileOrImage>) {
         (center as? ImageDropTarget)?.state = processing(images)
     }

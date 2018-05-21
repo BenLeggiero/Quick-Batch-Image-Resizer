@@ -15,7 +15,7 @@ import LatteFX.*
 class Main: LatteFXMain(appInfo = QBIRAppInfo,
                         appConfig = QBIRAppConfig,
                         onStart =
-{ commandLineArguments, primaryWindow ->
+{ _, primaryWindow ->
 
     primaryWindow?.apply {
         show()

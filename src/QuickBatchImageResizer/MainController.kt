@@ -36,12 +36,16 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
 
 
     override fun didReceiveDrop(items: Set<FileOrImage>): DropReaction {
-        allImages.addAll(items.mapToImages())
+        delegate?.preparingImagesForProcessing()
+        onFxApplicationThread {
+            allImages.addAll(items.mapToImages())
+            delegate?.readyToProcessImages(allImages)
 
-        if (useRapidMode) {
-            processImages()
+            if (useRapidMode) {
+                processImages()
+            }
         }
-        return accepted
+        return processing
     }
 
 
@@ -76,6 +80,8 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
 
 
     interface Delegate {
+        fun preparingImagesForProcessing()
+        fun readyToProcessImages(images: Set<FileOrImage>)
         fun startedProcessingImages(images: Set<FileOrImage>)
         fun doneProcessingImages()
     }
@@ -111,7 +117,7 @@ private fun File.madeUnique(hint: String): File {
         var counter = 1
 
         do {
-            filenameIdea = "$nameWithoutExtension ($hint $counter).$extension"
+            filenameIdea = "$nameWithoutExtension ($hint; $counter).$extension"
             fileIdea = File("${this.parentFile.path}${File.separator}$filenameIdea")
             counter += 1
         } while (fileIdea.exists() && counter < Int.MAX_VALUE)

@@ -2,11 +2,11 @@
 
 package QuickBatchImageResizer
 
+import QuickBatchImageResizer.ImageDropTarget.DropReaction.*
 import QuickBatchImageResizer.ImageDropTarget.FileOrImage
+import QuickBatchImageResizer.ImageDropTarget.State.*
 import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.holding
 import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.hovering
-import QuickBatchImageResizer.ImageDropTarget.State.denying
-import QuickBatchImageResizer.ImageDropTarget.State.inactive
 import QuickBatchImageResizer.Utilities.nonEmpty
 import javafx.embed.swing.SwingFXUtils
 import javafx.event.EventHandler
@@ -129,7 +129,13 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
         if (null != filesOrImages) {
             state = holding(filesOrImages)
             dragEvent.acceptTransferModes(COPY)
-            delegate.didReceiveDrop(filesOrImages)
+            val reaction = delegate.didReceiveDrop(filesOrImages)
+
+            when (reaction) {
+                accepted -> state = holding(filesOrImages)
+                processing -> state = StateWithFiles.processing(filesOrImages)
+                rejected -> state = denying
+            }
         }
         else {
             state = inactive
@@ -213,10 +219,11 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
         val name: String get() = when (this) {
             is file -> this.file.name
-            is image -> "🖼"
+            is image -> this.originalFile?.name ?: "🖼"
         }
 
 
+        @Throws(IOException::class)
         fun resized(newSize: Dimension2D): image = when (this) {
             is image -> image(this.image.resized(newSize = newSize))
             is file -> image(this.image?.resized(newSize = newSize)
@@ -273,6 +280,7 @@ class UnwrittenImage(val failedFile: File, val origin: FileOrImage)
 fun Image.resized(newSize: Dimension2D, preserveRatio: Boolean = false): Image
         = ImageView(this).apply {
             isPreserveRatio = preserveRatio
+            isSmooth = true
             fitWidth = newSize.width
             fitHeight = newSize.height
             isCache = false
