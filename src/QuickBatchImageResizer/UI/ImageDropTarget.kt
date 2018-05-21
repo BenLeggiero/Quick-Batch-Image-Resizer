@@ -7,11 +7,12 @@ import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.holding
 import QuickBatchImageResizer.ImageDropTarget.State.StateWithFiles.hovering
 import QuickBatchImageResizer.ImageDropTarget.State.denying
 import QuickBatchImageResizer.ImageDropTarget.State.inactive
+import QuickBatchImageResizer.Utilities.nonEmpty
 import javafx.embed.swing.SwingFXUtils
 import javafx.event.EventHandler
 import javafx.geometry.Dimension2D
 import javafx.geometry.Insets
-import javafx.scene.CacheHint.*
+import javafx.scene.CacheHint.QUALITY
 import javafx.scene.control.Label
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
@@ -74,10 +75,9 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     fun userDidStartDrag() = EventHandler<DragEvent> { dragEvent ->
         println("Drag started: $dragEvent")
 
-        val filesOrImages = FileOrImage.extractAll(dragEvent)
+        val filesOrImages = extractFilesOrImages(from = dragEvent, using = delegate)
 
-        if (filesOrImages.isNotEmpty()
-                && delegate.shouldAcceptDrop(filesOrImages)) {
+        if (null != filesOrImages) {
             state = hovering(filesOrImages)
             dragEvent.acceptTransferModes(COPY)
         }
@@ -88,8 +88,19 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
         dragEvent.consume()
     }
 
+    private fun extractFilesOrImages(from: DragEvent,
+                                     using: Delegate): Set<FileOrImage>? {
 
-    fun userDidCancelDrag() = EventHandler<DragEvent> {
+        return FileOrImage.extractAll(from).let { extractedFilesOrImages ->
+            extractedFilesOrImages.nonEmpty()?.let {
+                using.shouldAcceptDrop(it)
+            }
+        }
+                ?.nonEmpty()
+    }
+
+
+    private fun userDidCancelDrag() = EventHandler<DragEvent> {
         println("Drag cancelled: $it")
         state = when (state) {
             is holding -> state
@@ -99,7 +110,7 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     }
 
 
-    fun userDidContinueDrag() = EventHandler<DragEvent> { dragEvent ->
+    private fun userDidContinueDrag() = EventHandler<DragEvent> { dragEvent ->
         println("Drag continued: $dragEvent")
 
         if (state !== denying) {
@@ -110,13 +121,12 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
     }
 
 
-    fun userDidDragDrop() = EventHandler<DragEvent> { dragEvent ->
+    private fun userDidDragDrop() = EventHandler<DragEvent> { dragEvent ->
         println("Drag drop: $dragEvent")
 
-        val filesOrImages = FileOrImage.extractAll(dragEvent)
+        val filesOrImages = extractFilesOrImages(from = dragEvent, using = delegate)
 
-        if (filesOrImages.isNotEmpty()
-                && delegate.shouldAcceptDrop(filesOrImages)) {
+        if (null != filesOrImages) {
             state = holding(filesOrImages)
             dragEvent.acceptTransferModes(COPY)
             delegate.didReceiveDrop(filesOrImages)
@@ -149,9 +159,9 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 //
 //            state = when (transferrable) {
 //                null -> inactive
-//                is Image -> dropping(setOf(image(transferrable)))
-//                is File -> dropping(setOf(file(transferrable)))
-//                is List<*> -> dropping(
+//                is Image -> processing(setOf(image(transferrable)))
+//                is File -> processing(setOf(file(transferrable)))
+//                is List<*> -> processing(
 //                        transferrable
 //                                .mapNotNull { it as? File }
 //                                .map { file(it) }
@@ -173,10 +183,10 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
         sealed class StateWithFiles(val fileOrImages: Set<FileOrImage>, paint: Paint, callToAction: String): State(paint, callToAction) {
             /** When the user has is holding the image(s) atop drop target */
-            class hovering(images: Set<FileOrImage>) : StateWithFiles(images, MaterialColors.lightBlue400, "Yeah that")
+            class hovering(images: Set<FileOrImage>) : StateWithFiles(images, MaterialColors.lightBlue400, "Yeah that 🙌")
 
             /** When the user has just let go of the image(s), but they are not yet held by the drop target */
-            class dropping(images: Set<FileOrImage>) : StateWithFiles(images, MaterialColors.lightBlue400, "Thanks! 👍🏽")
+            class processing(images: Set<FileOrImage>) : StateWithFiles(images, MaterialColors.lightBlue400, "Working on it...")
 
             /** When the image drop target is holding the image(s) */
             class holding(images: Set<FileOrImage>) : StateWithFiles(images, MaterialColors.blueGrey500, filesString(images))
@@ -221,7 +231,7 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
                 val files = dragboard.files
                 if (null != files) {
-                    dragboard.files?.forEach { all.add(file(it)) }
+                    files.forEach { all.add(file(it)) }
                 }
                 else {
                     dragboard.image?.let { all.add(image(it)) }
@@ -235,9 +245,11 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
     interface Delegate {
         /**
-         * Called to determine whether the drop target should accept or reject the given item
+         * Called to determine whether the drop target should accept or reject the given items
+         *
+         * @return The items that are accepted
          */
-        fun shouldAcceptDrop(items: Set<FileOrImage>): Boolean
+        fun shouldAcceptDrop(items: Set<FileOrImage>): Set<FileOrImage>
 
 
         /**
@@ -249,7 +261,8 @@ class ImageDropTarget(var delegate: Delegate): BorderPane() {
 
     enum class DropReaction {
         accepted,
-        rejected
+        processing,
+        rejected,
         ;
     }
 }
@@ -274,12 +287,13 @@ val FileOrImage.file.image: Image? get()
         catch (_: Throwable) { null }
 
 
-fun FileOrImage.image.write(toFile: File): UnwrittenImage? {
+fun FileOrImage.image.write(to: File): UnwrittenImage? {
+    val file = to
     return try {
-        ImageIO.write(image.buffered(), "jpg", toFile)
+        ImageIO.write(image.buffered(), format, file)
         null
     } catch (error: Throwable) {
-        UnwrittenImage(failedFile = toFile, origin = this)
+        UnwrittenImage(failedFile = file, origin = this)
     }
 }
 

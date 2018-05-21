@@ -7,6 +7,8 @@ import javafx.embed.swing.*
 import javafx.geometry.*
 import javafx.scene.image.*
 import java.io.*
+import java.util.concurrent.CompletableFuture
+import kotlin.math.roundToInt
 
 /**
  * @author Ben
@@ -16,18 +18,19 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
     override var targetDimension = Dimension2D(640.0, 480.0)
     override var useRapidMode: Boolean = false
     override var overwriteExistingFiles: Boolean = false
-
     var delegate: Delegate? = null
+    private var allImages = mutableSetOf<FileOrImage.image>()
 
-    var allImages = mutableSetOf<FileOrImage.image>()
+    private val acceptedFormats = setOf("jpg", "jpeg", "png", "gif", "bmp")
+
 
     override fun didPressGoButton() {
         processImages()
     }
 
 
-    override fun shouldAcceptDrop(items: Set<FileOrImage>): Boolean {
-        return true
+    override fun shouldAcceptDrop(items: Set<FileOrImage>): Set<FileOrImage> {
+        return items.filterTo(mutableSetOf()) { acceptedFormats.contains(it.format.toLowerCase()) }
     }
 
 
@@ -42,13 +45,17 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
 
 
     private fun processImages() {
-        allImages.forEach {
-            it.resized(newSize = targetDimension).write(it.outputFile(uniqueness = "${targetDimension.width}x${targetDimension.height}",
-                                                                      format = it.format))
-        }
-        allImages = mutableSetOf()
+        delegate?.startedProcessingImages(allImages)
 
-        delegate?.doneProcessingImages()
+        CompletableFuture.runAsync {
+            allImages.forEach {
+                it.resized(newSize = targetDimension).write(it.outputFile(uniqueness = "${targetDimension.width.roundToInt()}x${targetDimension.height.roundToInt()}",
+                                                                          format = it.format))
+            }
+            allImages = mutableSetOf()
+
+            delegate?.doneProcessingImages()
+        }
     }
 
 
@@ -68,6 +75,7 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
 
 
     interface Delegate {
+        fun startedProcessingImages(images: Set<FileOrImage>)
         fun doneProcessingImages()
     }
 }
@@ -85,7 +93,7 @@ private fun FileOrImage.file.readImage(): Image {
     return Image("file://" + this.file.path)
 }
 
-private val FileOrImage.format: String
+internal val FileOrImage.format: String
     get() = when (this) {
         is file -> file.extension
         is image -> originalFile?.extension ?: "png"
