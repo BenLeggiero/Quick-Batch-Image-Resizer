@@ -1,5 +1,6 @@
 package QuickBatchImageResizer
 
+import LatteFX.*
 import QuickBatchImageResizer.ImageDropTarget.*
 import QuickBatchImageResizer.ImageDropTarget.DropReaction.*
 import QuickBatchImageResizer.ImageDropTarget.FileOrImage.*
@@ -47,7 +48,7 @@ object MainController: TopBar.Delegate, ImageDropTarget.Delegate, BottomBar.Dele
     private fun processImages() {
         delegate?.startedProcessingImages(allImages)
 
-        CompletableFuture.runAsync {
+        onFxApplicationThread {
             allImages.forEach {
                 it.resized(newSize = targetDimension).write(it.outputFile(uniqueness = "${targetDimension.width.roundToInt()}x${targetDimension.height.roundToInt()}",
                                                                           format = it.format))

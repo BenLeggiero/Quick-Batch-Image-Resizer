@@ -27,16 +27,19 @@ class TopBar(initialDelegate: Delegate? = null): GridPane() {
         hgap = 4.0
         vgap = 4.0
 
-        targetDimensionXSpinner.prefWidth = 96.0
-        targetDimensionYSpinner.prefWidth = 96.0
-
-        targetDimensionXSpinner.valueProperty().addListener { _ -> didChangeXSpinner() }
-        targetDimensionYSpinner.valueProperty().addListener { _ -> didChangeYSpinner() }
+        setUpSpinner(targetDimensionXSpinner, ::didChangeXSpinner)
+        setUpSpinner(targetDimensionYSpinner, ::didChangeYSpinner)
 
         add(targetDimensionLabel, 0, 0)
         add(targetDimensionXSpinner, 1, 0)
         add(targetDimensionSpinnerDivider, 2, 0)
         add(targetDimensionYSpinner, 3, 0)
+    }
+
+    private fun setUpSpinner(targetDimensionSpinner: Spinner<Int>, didChange: () -> Unit) {
+        targetDimensionSpinner.prefWidth = 96.0
+        targetDimensionSpinner.valueProperty().addListener { _ -> didChange() }
+        targetDimensionSpinner.isEditable = true
     }
 
 
